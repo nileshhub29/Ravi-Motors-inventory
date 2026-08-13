@@ -1,0 +1,58 @@
+"""
+main.py — FastAPI application entry point.
+"""
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+
+from backend.database import create_tables
+from backend.websocket import manager
+from backend.routers import auth_router, inventory_router, audit_router, workers_router, dashboard_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Create tables on startup."""
+    await create_tables()
+    yield
+
+
+app = FastAPI(
+    title="MarutiParts Hub API",
+    description="Maruti Suzuki Spare Parts Inventory Management",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+# CORS — allow frontend dev server
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Register routers
+app.include_router(auth_router.router)
+app.include_router(inventory_router.router)
+app.include_router(audit_router.router)
+app.include_router(workers_router.router)
+app.include_router(dashboard_router.router)
+
+
+@app.get("/api/health")
+async def health():
+    return {"status": "ok", "app": "MarutiParts Hub"}
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket endpoint for real-time inventory updates."""
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Keep connection alive; client sends pings
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
