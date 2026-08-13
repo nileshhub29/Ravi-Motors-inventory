@@ -1,171 +1,131 @@
 import { useState, useEffect, useRef } from 'react';
 import type { InventoryItem } from '../types';
-import { X, Plus, Minus, Check } from 'lucide-react';
+import { X, Plus, Minus } from 'lucide-react';
 
 interface QuantityModalProps {
   item: InventoryItem | null;
   mode: 'add' | 'drop' | null;
   onClose: () => void;
-  onConfirm: (item: InventoryItem, qty: number, mode: 'add' | 'drop') => Promise<void>;
+  onConfirm: (item: InventoryItem, qty: number, mode: 'add' | 'drop') => void;
 }
 
 export function QuantityModal({ item, mode, onClose, onConfirm }: QuantityModalProps) {
-  const [quantity, setQuantity] = useState<string>('1');
-  const [submitting, setSubmitting] = useState(false);
+  const [qty, setQty] = useState('1');
+  const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const isAdd = mode === 'add';
-
+  // Reset qty and auto-focus whenever modal opens
   useEffect(() => {
     if (item && mode) {
-      setQuantity('1');
-      setSubmitting(false);
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-          inputRef.current.select();
-        }
-      }, 50);
+      setQty('1');
+      setSaving(false);
+      // Small delay to let CSS transition start, then focus
+      setTimeout(() => inputRef.current?.select(), 100);
     }
   }, [item, mode]);
 
   if (!item || !mode) return null;
 
-  const numQty = parseInt(quantity, 10);
-  const isValid = !isNaN(numQty) && numQty > 0 && (isAdd || numQty <= item.stock);
+  const isAdd = mode === 'add';
+  const parsed = parseInt(qty, 10);
+  const isValid = !isNaN(parsed) && parsed > 0;
+  const previewStock = isAdd
+    ? item.stock + (isValid ? parsed : 0)
+    : Math.max(0, item.stock - (isValid ? parsed : 0));
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!isValid || submitting) return;
-
+  const handleConfirm = async () => {
+    if (!isValid || saving) return;
+    setSaving(true);
     try {
-      setSubmitting(true);
-      await onConfirm(item, numQty, mode);
-      onClose();
-    } catch (err) {
-      console.error('Quantity update failed:', err);
+      await onConfirm(item, parsed, mode);
     } finally {
-      setSubmitting(false);
+      setSaving(false);
+      onClose();
     }
   };
 
-  const presets = isAdd ? [1, 2, 5, 10, 20, 50] : [1, 2, 3, 5, 10].filter(n => n <= item.stock);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && isValid) handleConfirm();
+    if (e.key === 'Escape') onClose();
+  };
 
   return (
     <div
       className="modal-backdrop open"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="modal" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal qty-modal" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
         <div className="modal-head">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                display: 'grid',
-                placeItems: 'center',
-                background: isAdd ? 'var(--front-soft)' : 'var(--red-soft)',
-                color: isAdd ? 'var(--front)' : 'var(--red)',
-              }}
-            >
-              {isAdd ? <Plus size={20} /> : <Minus size={20} />}
-            </div>
-            <div>
-              <h2 className="modal-title" style={{ fontSize: 20 }}>
-                {isAdd ? 'Add Stock' : 'Drop Stock'}
-              </h2>
-              <div className="modal-sub">
-                {item.part_name} · Current: <strong>{item.stock}</strong>
-              </div>
-            </div>
+          <div>
+            <h2 className="modal-title">
+              {isAdd ? 'Add Stock' : 'Drop Stock'}
+            </h2>
+            <p className="modal-sub">{item.part_name} · {item.car_model}</p>
           </div>
-          <button className="modal-close" onClick={onClose} disabled={submitting}>
-            <X size={18} />
+          <button className="modal-close" onClick={onClose}>
+            <X size={16} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="field" style={{ marginBottom: 16 }}>
-            <label>Select or Enter Quantity to {isAdd ? 'Add' : 'Drop'}</label>
+        {/* Current stock display */}
+        <div className="qty-current-stock">
+          <span className="qty-label">Current Stock</span>
+          <span className="qty-stock-value">{item.stock}</span>
+        </div>
 
-            {/* Quick Presets */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '8px 0 12px' }}>
-              {presets.map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  className={`chip-option ${numQty === p ? 'selected' : ''}`}
-                  onClick={() => setQuantity(String(p))}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {isAdd ? `+${p}` : `-${p}`}
-                </button>
-              ))}
-            </div>
-
-            {/* Quantity Number Input */}
-            <div style={{ position: 'relative' }}>
-              <input
-                ref={inputRef}
-                type="number"
-                min="1"
-                max={isAdd ? 99999 : item.stock}
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                placeholder="Enter custom quantity"
-                disabled={submitting}
-                style={{
-                  fontSize: 20,
-                  fontWeight: 800,
-                  padding: '12px 14px',
-                  borderRadius: 10,
-                  textAlign: 'center',
-                }}
-              />
-            </div>
-            {!isAdd && numQty > item.stock && (
-              <div style={{ color: 'var(--red)', fontSize: 12, marginTop: 4, fontWeight: 600 }}>
-                Cannot drop more than current stock ({item.stock})
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+        {/* Quantity input section */}
+        <div className="qty-input-section">
+          <label className="qty-label" htmlFor="qty-input">
+            {isAdd ? 'Quantity to Add' : 'Quantity to Drop'}
+          </label>
+          <div className="qty-input-row">
             <button
-              type="button"
-              className="btn"
-              style={{ flex: 1, justifyContent: 'center' }}
-              onClick={onClose}
-              disabled={submitting}
+              className="qty-step-btn"
+              onClick={() => setQty(String(Math.max(1, (parsed || 1) - 1)))}
+              disabled={!isValid || parsed <= 1}
             >
-              Cancel
+              <Minus size={16} />
             </button>
+            <input
+              id="qty-input"
+              ref={inputRef}
+              type="number"
+              min="1"
+              className="qty-input"
+              value={qty}
+              onChange={(e) => setQty(e.target.value)}
+              onKeyDown={handleKeyDown}
+              autoFocus
+            />
             <button
-              type="submit"
-              className="btn primary"
-              style={{
-                flex: 1,
-                justify: 'center',
-                background: isAdd ? 'var(--front)' : 'var(--red)',
-                borderColor: isAdd ? 'var(--front)' : 'var(--red)',
-              }}
-              disabled={!isValid || submitting}
+              className="qty-step-btn"
+              onClick={() => setQty(String((parsed || 0) + 1))}
             >
-              <Check size={16} />
-              {submitting
-                ? 'Updating...'
-                : `${isAdd ? 'Add' : 'Drop'} ${isValid ? numQty : ''} Unit${numQty !== 1 ? 's' : ''}`}
+              <Plus size={16} />
             </button>
           </div>
-        </form>
+        </div>
+
+        {/* Preview */}
+        <div className="qty-preview">
+          <span className="qty-label">After this change</span>
+          <span className={`qty-preview-value ${previewStock === 0 ? 'zero' : ''}`}>
+            {item.stock} → {previewStock}
+          </span>
+        </div>
+
+        {/* Actions */}
+        <div className="modal-actions">
+          <button className="btn outline" onClick={onClose}>Cancel</button>
+          <button
+            className={`btn ${isAdd ? 'primary' : 'danger'}`}
+            disabled={!isValid || saving}
+            onClick={handleConfirm}
+          >
+            {saving ? 'Saving...' : isAdd ? `Add ${isValid ? parsed : ''} Unit${parsed !== 1 ? 's' : ''}` : `Drop ${isValid ? parsed : ''} Unit${parsed !== 1 ? 's' : ''}`}
+          </button>
+        </div>
       </div>
     </div>
   );

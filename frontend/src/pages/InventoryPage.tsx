@@ -98,8 +98,8 @@ export function InventoryPage() {
     setEditingItem(undefined);
   };
 
-  const handleQuantityConfirm = async (item: InventoryItem, qty: number, mode: 'add' | 'drop') => {
-    const delta = mode === 'add' ? qty : -qty;
+  const handleAdjustStock = async (item: InventoryItem, delta: number) => {
+    if (delta === 0) return;
     const newStock = Math.max(0, item.stock + delta);
 
     // Optimistically update local UI state immediately
@@ -108,13 +108,20 @@ export function InventoryPage() {
     );
 
     try {
-      const reason = mode === 'add' ? `Added ${qty} unit${qty > 1 ? 's' : ''}` : `Dropped ${qty} unit${qty > 1 ? 's' : ''}`;
+      const mode = delta > 0 ? 'Added' : 'Dropped';
+      const qty = Math.abs(delta);
+      const reason = `${mode} ${qty} unit${qty > 1 ? 's' : ''} directly`;
       await inventoryApi.adjustStock(item.id, delta, reason);
-      toast.success(`${mode === 'add' ? 'Added' : 'Dropped'} ${qty} unit${qty > 1 ? 's' : ''} (${item.part_name})`);
+      toast.success(`${mode} ${qty} unit${qty > 1 ? 's' : ''} (${item.part_name})`);
     } catch (err: any) {
       toast.error('Failed to adjust stock');
       fetchItems();
     }
+  };
+
+  const handleQtyConfirm = async (item: InventoryItem, qty: number, mode: 'add' | 'drop') => {
+    const delta = mode === 'add' ? qty : -qty;
+    await handleAdjustStock(item, delta);
   };
 
   return (
@@ -177,7 +184,7 @@ export function InventoryPage() {
         item={qtyModal?.item || null}
         mode={qtyModal?.mode || null}
         onClose={() => setQtyModal(null)}
-        onConfirm={handleQuantityConfirm}
+        onConfirm={handleQtyConfirm}
       />
 
       <TeamModal open={teamOpen} onClose={() => setTeamOpen(false)} />
