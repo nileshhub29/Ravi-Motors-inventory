@@ -1,13 +1,18 @@
-"""
-main.py — FastAPI application entry point.
-"""
+"""main.py — FastAPI application entry point."""
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.database import create_tables
 from backend.websocket import manager
-from backend.routers import auth_router, inventory_router, audit_router, workers_router, dashboard_router
+from backend.routers import (
+    auth_router,
+    inventory_router,
+    audit_router,
+    workers_router,
+    dashboard_router,
+)
 
 
 @asynccontextmanager
@@ -24,10 +29,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — allow frontend dev server
+# CORS — allow frontend dev servers and any Vercel deployment URL
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "https://ravi-motors-inventory-r3cpbbvj2.vercel.app",
+    ],
+    allow_origin_regex=r"https://.*\.vercel\.app",  # Matches all Vercel deployment preview/production URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
