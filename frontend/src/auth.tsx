@@ -24,9 +24,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
   const [loading, setLoading] = useState(false);
 
-  // Verify token on mount
+  // Verify token and fetch latest user info on mount
   useEffect(() => {
-    if (token && !user) {
+    if (token) {
       authApi.me()
         .then((u) => {
           setUser(u);
