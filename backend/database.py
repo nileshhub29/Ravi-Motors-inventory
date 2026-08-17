@@ -9,6 +9,12 @@ import os
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./parts_inventory.db")
 
+# Automatically adjust Render PostgreSQL connection URLs to use the asyncpg dialect
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+elif DATABASE_URL.startswith("postgresql://") and "+asyncpg" not in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+
 is_sqlite = DATABASE_URL.startswith("sqlite")
 
 if is_sqlite:
