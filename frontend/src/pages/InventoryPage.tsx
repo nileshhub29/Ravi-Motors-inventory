@@ -75,13 +75,22 @@ export function InventoryPage() {
       }
       if (side && item.side !== side) return false;
       if (search) {
-        const q = search.toLowerCase();
-        if (!item.part_name.toLowerCase().includes(q) &&
-            !item.oem_number.toLowerCase().includes(q) &&
-            !item.car_model.toLowerCase().includes(q) &&
-            !(item.generation_type && item.generation_type.toLowerCase().includes(q))) {
-          return false;
-        }
+        const q = search.toLowerCase().trim();
+        const qNormalized = q.replace(/[\s-]/g, '');
+        const nameLower = item.part_name.toLowerCase();
+        const oemLower = item.oem_number.toLowerCase();
+        const oemNormalized = oemLower.replace(/[\s-]/g, '');
+        const modelLower = item.car_model.toLowerCase();
+        const genLower = (item.generation_type || '').toLowerCase();
+
+        const matches =
+          nameLower.includes(q) ||
+          oemLower.includes(q) ||
+          (qNormalized.length > 2 && oemNormalized.includes(qNormalized)) ||
+          modelLower.includes(q) ||
+          genLower.includes(q);
+
+        if (!matches) return false;
       }
       return true;
     });
