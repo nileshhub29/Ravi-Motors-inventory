@@ -32,9 +32,11 @@ else:
         pool_pre_ping=True,
     )
 
+
 async def _apply_wal_mode(connection):
     """
     Enable WAL journal mode and set a busy timeout at the SQLite PRAGMA level.
+    WAL allows simultaneous reads while a write is in progress.
     Only applicable for SQLite databases.
     """
     if is_sqlite:
@@ -61,7 +63,7 @@ async def get_db():
 
 
 async def create_tables():
-    """Create all tables on startup and apply SQLite optimisation pragmas if applicable."""
+    """Create all tables on startup and apply SQLite optimisation pragmas."""
     async with engine.begin() as conn:
         from backend.models import Base  # noqa: F811
         # Apply WAL + busy_timeout before creating tables so the very first
