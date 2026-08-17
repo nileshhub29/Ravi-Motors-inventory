@@ -37,7 +37,7 @@ export const CAR_MODELS = Object.keys(VEHICLE_DATA);
 
 export const CATEGORIES = ['Headlights', 'Backlights', 'Bumpers'] as const;
 export const SIDES = ['LH', 'RH', 'Universal'] as const;
-export const QUALITY_TIERS = ['MGP Genuine', 'Aftermarket'] as const;
+export const QUALITY_TIERS = ['MGP Genuine', 'Local'] as const;
 export const POSITIONS = ['Front', 'Back'] as const;
 
 export interface InventoryItem {

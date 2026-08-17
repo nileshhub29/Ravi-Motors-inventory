@@ -124,7 +124,7 @@ export function FilterToolbar({
         <div className="seg">
           <button className={qualityFilter === '' ? 'active' : ''} onClick={() => setQualityFilter('')}>All Quality</button>
           <button className={`${qualityFilter === 'MGP Genuine' ? 'active q-mgp' : ''}`} onClick={() => setQualityFilter('MGP Genuine')}>MGP</button>
-          <button className={`${qualityFilter === 'Aftermarket' ? 'active q-amkt' : ''}`} onClick={() => setQualityFilter('Aftermarket')}>AMKT</button>
+          <button className={`${qualityFilter === 'Local' || qualityFilter === 'Aftermarket' ? 'active q-amkt' : ''}`} onClick={() => setQualityFilter(qualityFilter === 'Local' ? '' : 'Local')}>Local</button>
         </div>
 
         <div className="seg">

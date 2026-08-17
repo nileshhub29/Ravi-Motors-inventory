@@ -99,7 +99,7 @@ export function PartCard({ item, allItems, onAdjustStock, onEdit }: PartCardProp
           {item.quality_tier === 'MGP Genuine' ? (
             <><Check size={12} /> MGP Genuine</>
           ) : (
-            'Aftermarket'
+            'Local'
           )}
         </span>
         {low && !outOfStock && (

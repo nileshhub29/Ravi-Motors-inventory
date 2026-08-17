@@ -69,7 +69,10 @@ export function InventoryPage() {
       if (model && item.car_model !== model) return false;
       if (generation && item.generation_type !== generation) return false;
       if (category && item.part_category !== category) return false;
-      if (quality && item.quality_tier !== quality) return false;
+      if (quality) {
+        if (quality === 'Local' && item.quality_tier !== 'Local' && item.quality_tier !== 'Aftermarket') return false;
+        if (quality !== 'Local' && item.quality_tier !== quality) return false;
+      }
       if (side && item.side !== side) return false;
       if (search) {
         const q = search.toLowerCase();
