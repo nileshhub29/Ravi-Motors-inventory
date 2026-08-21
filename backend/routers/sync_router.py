@@ -97,10 +97,10 @@ async def sync_prices(
                         if price_info and "value" in price_info:
                             new_price = int(price_info["value"])
 
-                    yield f"data: {json.dumps({'status': 'progress', 'current': idx + 1, 'total': total, 'id': part.id, 'part_name': part.part_name, 'oem_number': part.oem_number, 'old_price': part.selling_price, 'new_price': new_price})}\n\n"
+                    yield f"data: {json.dumps({'status': 'progress', 'current': idx + 1, 'total': total, 'id': part.id, 'part_name': part.part_name, 'oem_number': part.oem_number, 'old_price': float(part.selling_price), 'new_price': new_price})}\n\n"
                     
                 except Exception as e:
-                    yield f"data: {json.dumps({'status': 'progress', 'current': idx + 1, 'total': total, 'id': part.id, 'part_name': part.part_name, 'oem_number': part.oem_number, 'old_price': part.selling_price, 'new_price': None, 'error': str(e)})}\n\n"
+                    yield f"data: {json.dumps({'status': 'progress', 'current': idx + 1, 'total': total, 'id': part.id, 'part_name': part.part_name, 'oem_number': part.oem_number, 'old_price': float(part.selling_price), 'new_price': None, 'error': str(e)})}\n\n"
 
                 # Wait 1 second to avoid rate limiting
                 await asyncio.sleep(1.0)
