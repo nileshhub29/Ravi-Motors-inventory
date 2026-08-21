@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { formatPrice } from '../types';
+import { API_BASE } from '../api';
 import { toast } from 'sonner';
 
 interface SyncModalProps {
@@ -60,7 +61,7 @@ export function SyncModal({ open, onClose, onSuccess }: SyncModalProps) {
     const token = localStorage.getItem('token');
     
     // Using fetch API to read stream to pass Authorization header
-    fetch('http://localhost:8000/api/sync/prices', {
+    fetch(`${API_BASE}/api/sync/prices`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -134,7 +135,7 @@ export function SyncModal({ open, onClose, onSuccess }: SyncModalProps) {
     
     setSaving(true);
     try {
-      const res = await fetch('http://localhost:8000/api/sync/apply', {
+      const res = await fetch(`${API_BASE}/api/sync/apply`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
