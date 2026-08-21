@@ -9,6 +9,7 @@ import { ItemFormModal } from '../components/ItemFormModal';
 import { QuantityModal } from '../components/QuantityModal';
 import { AuditLogDrawer } from '../components/AuditLogDrawer';
 import { TeamModal } from '../components/TeamModal';
+import { SyncModal } from '../components/SyncModal';
 import { toast } from 'sonner';
 
 export function InventoryPage() {
@@ -26,6 +27,7 @@ export function InventoryPage() {
   // Modals / Drawers
   const [auditOpen, setAuditOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | undefined>();
   const [qtyModal, setQtyModal] = useState<{ item: InventoryItem; mode: 'add' | 'drop' } | null>(null);
@@ -145,6 +147,7 @@ export function InventoryPage() {
         onOpenAuditLog={() => setAuditOpen(true)}
         onAddItem={() => { setEditingItem(undefined); setFormOpen(true); }}
         onOpenTeam={() => setTeamOpen(true)}
+        onOpenSync={() => setSyncOpen(true)}
       />
 
       <main className="page-body app">
@@ -184,6 +187,12 @@ export function InventoryPage() {
       </main>
 
       <AuditLogDrawer open={auditOpen} onClose={() => setAuditOpen(false)} />
+      
+      <SyncModal 
+        open={syncOpen} 
+        onClose={() => setSyncOpen(false)} 
+        onSuccess={() => fetchItems()} 
+      />
       
       <ItemFormModal
         open={formOpen}

@@ -12,6 +12,7 @@ from backend.routers import (
     audit_router,
     workers_router,
     dashboard_router,
+    sync_router,
 )
 
 
@@ -50,7 +51,7 @@ app.include_router(inventory_router.router)
 app.include_router(audit_router.router)
 app.include_router(workers_router.router)
 app.include_router(dashboard_router.router)
-
+app.include_router(sync_router.router)
 
 @app.get("/api/health")
 async def health():
