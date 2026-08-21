@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { formatPrice } from '../types';
 import { API_BASE } from '../api';
