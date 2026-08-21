@@ -77,19 +77,7 @@ export function PartCard({ item, allItems, onAdjustStock, onEdit, onSyncPrice }:
     >
       <div className="part-meta">
         <div className="part-name">{item.part_name}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div className="price-amt">{formatPrice(item.selling_price)}</div>
-          {isAdminOrOwner && item.quality_tier === 'MGP Genuine' && onSyncPrice && (
-            <button
-              className="icon-btn"
-              onClick={(e) => { e.stopPropagation(); onSyncPrice(item); }}
-              title="Sync price from Maruti website"
-              style={{ width: 26, height: 26, borderRadius: 6, display: 'grid', placeItems: 'center', background: 'var(--surface)', border: '1px solid var(--line)', cursor: 'pointer' }}
-            >
-              <RefreshCw size={12} color="var(--primary)" />
-            </button>
-          )}
-        </div>
+        <div className="price-amt">{formatPrice(item.selling_price)}</div>
       </div>
 
       <div className="part-vehicle">
@@ -139,6 +127,34 @@ export function PartCard({ item, allItems, onAdjustStock, onEdit, onSyncPrice }:
           {copied ? <Check size={16} color="var(--mgp)" /> : <Copy size={16} color="var(--muted-2)" />}
         </button>
       </div>
+
+      {isAdminOrOwner && item.quality_tier === 'MGP Genuine' && onSyncPrice && (
+        <button
+          onClick={() => onSyncPrice(item)}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 8,
+            cursor: 'pointer',
+            fontSize: 12,
+            fontWeight: 600,
+            letterSpacing: '0.02em',
+            transition: 'opacity 0.2s',
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.opacity = '0.85')}
+          onMouseOut={(e) => (e.currentTarget.style.opacity = '1')}
+        >
+          <RefreshCw size={13} />
+          Sync Price from Maruti
+        </button>
+      )}
 
       {oppositePart && (
         <button className="pair-link" onClick={scrollToOpposite}>
