@@ -96,11 +96,14 @@ export function SyncModal({ open, itemId, itemName, oemNumber, currentPrice, onC
   if (!open) return null;
 
   return (
-    <div className="modal-backdrop">
+    <div className="modal-backdrop open" onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}>
       <div className="modal" style={{ maxWidth: 480, width: '100%' }}>
-        <div className="modal-header">
-          <h3>Sync Price from Maruti</h3>
-          <button className="icon-btn" onClick={handleClose} disabled={checking || applying}><X size={18} /></button>
+        <div className="modal-head">
+          <div>
+            <div className="modal-title">Sync Price</div>
+            <div className="modal-sub">Check live MRP from Maruti website</div>
+          </div>
+          <button className="modal-close" onClick={handleClose} disabled={checking || applying}><X size={18} /></button>
         </div>
 
         <div className="modal-body">
@@ -219,7 +222,7 @@ export function SyncModal({ open, itemId, itemName, oemNumber, currentPrice, onC
           )}
         </div>
 
-        <div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
+        <div className="modal-actions" style={{ justifyContent: 'flex-end' }}>
           <button className="btn" onClick={handleClose} disabled={checking || applying}>
             {result && result.found && !result.price_changed ? 'Done' : 'Cancel'}
           </button>
