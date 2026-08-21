@@ -1,5 +1,5 @@
 import { useAuth } from '../auth';
-import { Search, Clock, Plus, LogOut, LayoutDashboard, Users, RefreshCw } from 'lucide-react';
+import { Search, Clock, Plus, LogOut, LayoutDashboard, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
@@ -9,10 +9,9 @@ interface HeaderProps {
   onOpenAuditLog: () => void;
   onAddItem: () => void;
   onOpenTeam?: () => void;
-  onOpenSync?: () => void;
 }
 
-export function Header({ lowStockCount, searchValue, onSearchChange, onOpenAuditLog, onAddItem, onOpenTeam, onOpenSync }: HeaderProps) {
+export function Header({ lowStockCount, searchValue, onSearchChange, onOpenAuditLog, onAddItem, onOpenTeam }: HeaderProps) {
   const { user, logout, isOwner, isAdminOrOwner } = useAuth();
   const navigate = useNavigate();
   const initials = user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '??';
@@ -72,13 +71,6 @@ export function Header({ lowStockCount, searchValue, onSearchChange, onOpenAudit
             <Clock size={18} />
             {lowStockCount > 0 && <span className="dot" />}
           </button>
-
-          {isAdminOrOwner && onOpenSync && (
-            <button className="btn outline" onClick={onOpenSync} style={{ padding: '8px 12px' }} title="Sync MGP Prices">
-              <RefreshCw size={14} />
-              <span>Sync</span>
-            </button>
-          )}
 
           {isAdminOrOwner && (
             <button className="btn primary" onClick={onAddItem} style={{ padding: '8px 12px' }}>

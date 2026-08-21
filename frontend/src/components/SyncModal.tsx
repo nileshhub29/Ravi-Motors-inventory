@@ -1,253 +1,231 @@
-import { useState, useEffect, useRef } from 'react';
-import { X, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
+import { X, RefreshCw, CheckCircle2, ArrowUp, ArrowDown } from 'lucide-react';
 import { formatPrice } from '../types';
 import { API_BASE } from '../api';
 import { toast } from 'sonner';
 
+interface SyncResult {
+  found: boolean;
+  item_id: number;
+  oem_number: string;
+  part_name?: string;
+  maruti_name?: string;
+  maruti_sku?: string;
+  current_price: number;
+  maruti_price: number | null;
+  price_changed?: boolean;
+  difference?: number;
+  in_stock?: boolean;
+  message?: string;
+}
+
 interface SyncModalProps {
   open: boolean;
+  itemId: number | null;
+  itemName: string;
+  oemNumber: string;
+  currentPrice: number;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-interface SyncProgress {
-  status: 'start' | 'progress' | 'done';
-  current?: number;
-  total?: number;
-  id?: number;
-  part_name?: string;
-  oem_number?: string;
-  old_price?: number;
-  new_price?: number;
-  error?: string;
-}
+export function SyncModal({ open, itemId, itemName, oemNumber, currentPrice, onClose, onSuccess }: SyncModalProps) {
+  const [checking, setChecking] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [result, setResult] = useState<SyncResult | null>(null);
 
-interface PriceUpdate {
-  id: number;
-  part_name: string;
-  oem_number: string;
-  old_price: number;
-  new_price: number;
-}
-
-export function SyncModal({ open, onClose, onSuccess }: SyncModalProps) {
-  const [syncing, setSyncing] = useState(false);
-  const [progress, setProgress] = useState<SyncProgress | null>(null);
-  const [updates, setUpdates] = useState<PriceUpdate[]>([]);
-  const [done, setDone] = useState(false);
-  const [saving, setSaving] = useState(false);
-  
-  const eventSourceRef = useRef<EventSource | null>(null);
-
-  useEffect(() => {
-    if (!open) {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-      setSyncing(false);
-      setProgress(null);
-      setUpdates([]);
-      setDone(false);
-    }
-  }, [open]);
-
-  const startSync = () => {
-    setSyncing(true);
-    setDone(false);
-    setUpdates([]);
-    setProgress({ status: 'start', current: 0, total: 0 });
-
-    const token = localStorage.getItem('token');
+  const handleCheck = async () => {
+    if (!itemId) return;
+    setChecking(true);
+    setResult(null);
     
-    // Using fetch API to read stream to pass Authorization header
-    fetch(`${API_BASE}/api/sync/prices`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/api/sync/check/${itemId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to check price');
       }
-    }).then(async (response) => {
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder('utf-8');
-
-      if (!reader) {
-        toast.error('Failed to start sync stream');
-        setSyncing(false);
-        return;
-      }
-
-      let buffer = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || ''; // Keep the incomplete part in the buffer
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.substring('data: '.length);
-            try {
-              const data = JSON.parse(dataStr) as SyncProgress;
-              
-              if (data.status === 'done') {
-                setDone(true);
-                setSyncing(false);
-                return;
-              }
-
-              setProgress(data);
-              
-              if (data.status === 'progress' && data.new_price !== undefined && data.new_price !== null) {
-                if (data.old_price !== data.new_price) {
-                  setUpdates(prev => {
-                    // avoid duplicates
-                    if (prev.find(u => u.id === data.id)) return prev;
-                    return [...prev, {
-                      id: data.id as number,
-                      part_name: data.part_name as string,
-                      oem_number: data.oem_number as string,
-                      old_price: data.old_price as number,
-                      new_price: data.new_price as number
-                    }];
-                  });
-                }
-              }
-            } catch (e) {
-              console.error('Error parsing SSE JSON:', e);
-            }
-          }
-        }
-      }
-    }).catch(err => {
-      console.error(err);
-      toast.error('Sync failed');
-      setSyncing(false);
-    });
+      
+      const data = await res.json() as SyncResult;
+      setResult(data);
+    } catch (e: any) {
+      toast.error(e.message || 'Error checking price');
+    } finally {
+      setChecking(false);
+    }
   };
 
   const handleApply = async () => {
-    if (updates.length === 0) {
-      onClose();
-      return;
-    }
+    if (!itemId) return;
+    setApplying(true);
     
-    setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/api/sync/apply`, {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/api/sync/apply/${itemId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ updates: updates.map(u => ({ id: u.id, new_price: u.new_price })) })
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      if (!res.ok) throw new Error('Failed to apply prices');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to apply price');
+      }
       
       const data = await res.json();
-      toast.success(`Successfully updated ${data.updated_count} prices`);
+      toast.success(`Price updated: ${formatPrice(data.old_price)} → ${formatPrice(data.new_price)}`);
       onSuccess();
       onClose();
     } catch (e: any) {
-      toast.error(e.message || 'Error applying prices');
+      toast.error(e.message || 'Error applying price');
     } finally {
-      setSaving(false);
+      setApplying(false);
     }
+  };
+
+  const handleClose = () => {
+    setResult(null);
+    setChecking(false);
+    setApplying(false);
+    onClose();
   };
 
   if (!open) return null;
 
   return (
     <div className="modal-backdrop">
-      <div className="modal" style={{ maxWidth: 600, width: '100%' }}>
+      <div className="modal" style={{ maxWidth: 480, width: '100%' }}>
         <div className="modal-header">
-          <h3>Sync Maruti Prices</h3>
-          <button className="icon-btn" onClick={onClose} disabled={syncing || saving}><X size={18} /></button>
+          <h3>Sync Price from Maruti</h3>
+          <button className="icon-btn" onClick={handleClose} disabled={checking || applying}><X size={18} /></button>
         </div>
 
         <div className="modal-body">
-          {!syncing && !done && (
-            <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-              <RefreshCw size={48} color="var(--primary)" style={{ marginBottom: 16 }} />
-              <h4 style={{ marginBottom: 8 }}>Ready to scan live prices?</h4>
-              <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 24, lineHeight: 1.5 }}>
-                This will check all your <strong>MGP Genuine</strong> parts against the official Maruti Suzuki Genuine Parts website.
-                <br/>It processes 1 item per second to prevent rate limiting.
+          {/* Part info */}
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{itemName}</div>
+            <div style={{ color: 'var(--muted)', fontSize: 12, display: 'flex', gap: 12, alignItems: 'center' }}>
+              <span>OEM: <strong>{oemNumber}</strong></span>
+              <span>Current: <strong>{formatPrice(currentPrice)}</strong></span>
+            </div>
+          </div>
+
+          {/* Not yet checked */}
+          {!result && !checking && (
+            <div style={{ textAlign: 'center', padding: '1.5rem 1rem' }}>
+              <RefreshCw size={40} color="var(--primary)" style={{ marginBottom: 12 }} />
+              <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 20, lineHeight: 1.5 }}>
+                Check the live MRP for this part on the official<br/>Maruti Suzuki Genuine Parts website.
               </p>
-              <button className="btn primary" onClick={startSync}>
-                Start Sync
+              <button className="btn primary" onClick={handleCheck}>
+                Check Live Price
               </button>
             </div>
           )}
 
-          {syncing && progress && progress.status !== 'start' && (
-            <div style={{ padding: '1rem 0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13, fontWeight: 600 }}>
-                <span>Scanning: {progress.part_name} ({progress.oem_number})</span>
-                <span>{progress.current} / {progress.total}</span>
-              </div>
-              <div style={{ height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ 
-                  height: '100%', 
-                  background: 'var(--primary)', 
-                  width: `${(progress.current || 0) / (progress.total || 1) * 100}%`,
-                  transition: 'width 0.3s ease'
-                }} />
-              </div>
+          {/* Loading */}
+          {checking && (
+            <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+              <RefreshCw size={32} color="var(--primary)" className="spin" style={{ marginBottom: 12 }} />
+              <p style={{ color: 'var(--muted)', fontSize: 13 }}>Fetching live price from marutisuzuki.com...</p>
             </div>
           )}
 
-          {(done || updates.length > 0) && (
-            <div style={{ marginTop: syncing ? 24 : 0 }}>
-              <h4 style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                {done ? <CheckCircle2 size={16} color="var(--mgp)" /> : <RefreshCw size={16} className="spin" />}
-                Found {updates.length} price difference{updates.length !== 1 && 's'}
-              </h4>
+          {/* Result: Not found */}
+          {result && !result.found && (
+            <div style={{ textAlign: 'center', padding: '1.5rem 1rem' }}>
+              <p style={{ color: 'var(--danger)', fontWeight: 600, marginBottom: 8 }}>Part not found</p>
+              <p style={{ color: 'var(--muted)', fontSize: 12 }}>
+                OEM number <strong>{oemNumber}</strong> was not found on Maruti's website. Check if the OEM number is correct.
+              </p>
+            </div>
+          )}
+
+          {/* Result: Found */}
+          {result && result.found && (
+            <div>
+              {/* Maruti match info */}
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
+                Matched: <strong>{result.maruti_sku}</strong> — {result.maruti_name}
+              </div>
               
-              {updates.length > 0 ? (
-                <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 6 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                    <thead style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
-                      <tr>
-                        <th style={{ padding: '8px 12px' }}>Part</th>
-                        <th style={{ padding: '8px 12px' }}>Current</th>
-                        <th style={{ padding: '8px 12px' }}>New (Live)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {updates.map(u => (
-                        <tr key={u.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '8px 12px' }}>
-                            <div style={{ fontWeight: 600 }}>{u.oem_number}</div>
-                            <div style={{ color: 'var(--muted)', fontSize: 11 }}>{u.part_name}</div>
-                          </td>
-                          <td style={{ padding: '8px 12px', color: 'var(--muted)' }}>
-                            {formatPrice(u.old_price)}
-                          </td>
-                          <td style={{ padding: '8px 12px', fontWeight: 600, color: u.new_price > u.old_price ? 'var(--danger)' : 'var(--mgp)' }}>
-                            {formatPrice(u.new_price)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {/* Price comparison */}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 10,
+                padding: '16px 20px',
+                gap: 12
+              }}>
+                {/* Current price */}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Your Price</div>
+                  <div style={{ fontSize: 20, fontWeight: 700 }}>{formatPrice(result.current_price)}</div>
+                </div>
+                
+                {/* Arrow */}
+                <div style={{ fontSize: 20, color: 'var(--muted)' }}>→</div>
+                
+                {/* Maruti price */}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Maruti MRP</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: result.price_changed ? (result.difference! > 0 ? 'var(--danger)' : 'var(--mgp)') : 'var(--ink)' }}>
+                    {formatPrice(result.maruti_price!)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Difference badge */}
+              {result.price_changed ? (
+                <div style={{ 
+                  marginTop: 12, 
+                  padding: '8px 12px', 
+                  borderRadius: 8, 
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: result.difference! > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                  color: result.difference! > 0 ? 'var(--danger)' : 'var(--mgp)',
+                }}>
+                  {result.difference! > 0 ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+                  Price {result.difference! > 0 ? 'increased' : 'decreased'} by {formatPrice(Math.abs(result.difference!))}
                 </div>
               ) : (
-                done && <p style={{ color: 'var(--muted)', fontSize: 13 }}>All your MGP parts are already up to date with the latest prices!</p>
+                <div style={{ 
+                  marginTop: 12, 
+                  padding: '8px 12px', 
+                  borderRadius: 8, 
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'rgba(34,197,94,0.1)',
+                  color: 'var(--mgp)',
+                }}>
+                  <CheckCircle2 size={14} />
+                  Price is already up to date!
+                </div>
               )}
             </div>
           )}
         </div>
 
         <div className="modal-footer" style={{ justifyContent: 'flex-end' }}>
-          <button className="btn" onClick={onClose} disabled={syncing || saving}>
-            Cancel
+          <button className="btn" onClick={handleClose} disabled={checking || applying}>
+            {result && result.found && !result.price_changed ? 'Done' : 'Cancel'}
           </button>
-          {(done || updates.length > 0) && (
-            <button className="btn primary" onClick={handleApply} disabled={updates.length === 0 || syncing || saving}>
-              {saving ? 'Saving...' : `Apply ${updates.length} Updates`}
+          {result && result.found && result.price_changed && (
+            <button className="btn primary" onClick={handleApply} disabled={applying}>
+              {applying ? 'Updating...' : `Update to ${formatPrice(result.maruti_price!)}`}
             </button>
           )}
         </div>

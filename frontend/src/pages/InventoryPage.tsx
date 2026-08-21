@@ -27,7 +27,7 @@ export function InventoryPage() {
   // Modals / Drawers
   const [auditOpen, setAuditOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
-  const [syncOpen, setSyncOpen] = useState(false);
+  const [syncItem, setSyncItem] = useState<InventoryItem | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | undefined>();
   const [qtyModal, setQtyModal] = useState<{ item: InventoryItem; mode: 'add' | 'drop' } | null>(null);
@@ -147,7 +147,6 @@ export function InventoryPage() {
         onOpenAuditLog={() => setAuditOpen(true)}
         onAddItem={() => { setEditingItem(undefined); setFormOpen(true); }}
         onOpenTeam={() => setTeamOpen(true)}
-        onOpenSync={() => setSyncOpen(true)}
       />
 
       <main className="page-body app">
@@ -180,6 +179,7 @@ export function InventoryPage() {
                 allItems={items}
                 onAdjustStock={(item, delta) => setQtyModal({ item, mode: delta > 0 ? 'add' : 'drop' })}
                 onEdit={(item) => { setEditingItem(item); setFormOpen(true); }}
+                onSyncPrice={(item) => setSyncItem(item)}
               />
             ))}
           </div>
@@ -189,8 +189,12 @@ export function InventoryPage() {
       <AuditLogDrawer open={auditOpen} onClose={() => setAuditOpen(false)} />
       
       <SyncModal 
-        open={syncOpen} 
-        onClose={() => setSyncOpen(false)} 
+        open={!!syncItem}
+        itemId={syncItem?.id ?? null}
+        itemName={syncItem?.part_name ?? ''}
+        oemNumber={syncItem?.oem_number ?? ''}
+        currentPrice={syncItem?.selling_price ?? 0}
+        onClose={() => setSyncItem(null)} 
         onSuccess={() => fetchItems()} 
       />
       

@@ -1,6 +1,6 @@
 import type { InventoryItem } from '../types';
 import { formatPrice, isLowStock, oppositeSide } from '../types';
-import { Minus, Plus, Tag, Copy, Check, AlertTriangle, MapPin, Pencil } from 'lucide-react';
+import { Minus, Plus, Tag, Copy, Check, AlertTriangle, MapPin, Pencil, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '../auth';
@@ -10,9 +10,10 @@ interface PartCardProps {
   allItems: InventoryItem[];
   onAdjustStock: (item: InventoryItem, delta: number) => void;
   onEdit: (item: InventoryItem) => void;
+  onSyncPrice?: (item: InventoryItem) => void;
 }
 
-export function PartCard({ item, allItems, onAdjustStock, onEdit }: PartCardProps) {
+export function PartCard({ item, allItems, onAdjustStock, onEdit, onSyncPrice }: PartCardProps) {
   const { isAdminOrOwner } = useAuth();
   const [copied, setCopied] = useState(false);
   const [stockVal, setStockVal] = useState<string>(String(item.stock));
@@ -76,7 +77,19 @@ export function PartCard({ item, allItems, onAdjustStock, onEdit }: PartCardProp
     >
       <div className="part-meta">
         <div className="part-name">{item.part_name}</div>
-        <div className="price-amt">{formatPrice(item.selling_price)}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div className="price-amt">{formatPrice(item.selling_price)}</div>
+          {isAdminOrOwner && item.quality_tier === 'MGP Genuine' && onSyncPrice && (
+            <button
+              className="icon-btn"
+              onClick={(e) => { e.stopPropagation(); onSyncPrice(item); }}
+              title="Sync price from Maruti website"
+              style={{ width: 26, height: 26, borderRadius: 6, display: 'grid', placeItems: 'center', background: 'var(--surface)', border: '1px solid var(--line)', cursor: 'pointer' }}
+            >
+              <RefreshCw size={12} color="var(--primary)" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="part-vehicle">

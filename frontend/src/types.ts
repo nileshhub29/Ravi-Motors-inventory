@@ -158,6 +158,7 @@ export function getLogTagClass(actionType: string, reason: string): string {
   if (actionType === 'item_added') return 'added';
   if (actionType === 'item_deleted') return 'deleted';
   if (actionType === 'item_updated') return 'updated';
+  if (actionType === 'price_synced') return 'updated';
   if (reason.toLowerCase().includes('sale')) return 'sale';
   if (reason.toLowerCase().includes('received')) return 'received';
   if (reason.toLowerCase().includes('damaged') || reason.toLowerCase().includes('return')) return 'damaged';
