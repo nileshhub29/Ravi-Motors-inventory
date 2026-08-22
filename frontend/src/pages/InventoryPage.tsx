@@ -138,6 +138,17 @@ export function InventoryPage() {
     await handleAdjustStock(item, delta);
   };
 
+  const handleDeleteItem = async (item: InventoryItem) => {
+    if (window.confirm(`Are you sure you want to delete "${item.part_name}"?`)) {
+      try {
+        await inventoryApi.delete(item.id);
+        toast.success('Part deleted successfully');
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to delete part');
+      }
+    }
+  };
+
   return (
     <>
       <Header
@@ -180,6 +191,7 @@ export function InventoryPage() {
                 onAdjustStock={(item, delta) => setQtyModal({ item, mode: delta > 0 ? 'add' : 'drop' })}
                 onEdit={(item) => { setEditingItem(item); setFormOpen(true); }}
                 onSyncPrice={(item) => setSyncItem(item)}
+                onDelete={handleDeleteItem}
               />
             ))}
           </div>

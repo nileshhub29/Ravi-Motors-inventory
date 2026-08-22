@@ -1,6 +1,6 @@
 import type { InventoryItem } from '../types';
 import { formatPrice, isLowStock, oppositeSide } from '../types';
-import { Minus, Plus, Tag, Copy, Check, AlertTriangle, MapPin, Pencil, RefreshCw } from 'lucide-react';
+import { Minus, Plus, Tag, Copy, Check, AlertTriangle, MapPin, Pencil, RefreshCw, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '../auth';
@@ -11,9 +11,10 @@ interface PartCardProps {
   onAdjustStock: (item: InventoryItem, delta: number) => void;
   onEdit: (item: InventoryItem) => void;
   onSyncPrice?: (item: InventoryItem) => void;
+  onDelete?: (item: InventoryItem) => void;
 }
 
-export function PartCard({ item, allItems, onAdjustStock, onEdit, onSyncPrice }: PartCardProps) {
+export function PartCard({ item, allItems, onAdjustStock, onEdit, onSyncPrice, onDelete }: PartCardProps) {
   const { isAdminOrOwner } = useAuth();
   const [copied, setCopied] = useState(false);
   const [stockVal, setStockVal] = useState<string>(String(item.stock));
@@ -178,14 +179,26 @@ export function PartCard({ item, allItems, onAdjustStock, onEdit, onSyncPrice }:
         </div>
         <div className="stepper">
           {isAdminOrOwner && (
-            <button
-              className="icon-btn"
-              style={{ width: 40, height: 40, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'var(--surface)', border: '1px solid var(--line)' }}
-              onClick={() => onEdit(item)}
-              title="Edit item"
-            >
-              <Pencil size={14} color="var(--ink)" />
-            </button>
+            <>
+              <button
+                className="icon-btn"
+                style={{ width: 40, height: 40, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'var(--surface)', border: '1px solid var(--line)' }}
+                onClick={() => onEdit(item)}
+                title="Edit item"
+              >
+                <Pencil size={14} color="var(--ink)" />
+              </button>
+              {onDelete && (
+                <button
+                  className="icon-btn"
+                  style={{ width: 40, height: 40, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'var(--surface)', border: '1px solid var(--line)' }}
+                  onClick={() => onDelete(item)}
+                  title="Delete item"
+                >
+                  <Trash2 size={14} color="var(--red)" />
+                </button>
+              )}
+            </>
           )}
           <button
             className="minus"
