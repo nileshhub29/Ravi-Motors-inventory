@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_db
 from backend.models import User, AppRole, Inventory, StockAuditLog
-from backend.auth import require_min_role
+from backend.auth import require_min_role, get_current_user
 from backend.schemas import InventoryOut
 from backend.websocket import manager
 
@@ -96,6 +96,28 @@ async def _fetch_maruti_price(oem_number: str) -> dict | None:
             "price": int(price_info["value"]),
             "in_stock": product_view.get("inStock", False),
         }
+
+
+@router.get("/lookup")
+async def lookup_oem(
+    oem_number: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    """
+    Look up an OEM number directly on Maruti's official website and return product details.
+    """
+    if not oem_number or len(oem_number.strip()) < 3:
+        raise HTTPException(status_code=400, detail="Please provide a valid OEM number")
+    
+    try:
+        maruti_data = await _fetch_maruti_price(oem_number)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to reach Maruti website: {str(e)}")
+    
+    if not maruti_data:
+        raise HTTPException(status_code=404, detail="Part not found on Maruti Genuine Parts website")
+    
+    return maruti_data
 
 
 @router.get("/check/{item_id}")

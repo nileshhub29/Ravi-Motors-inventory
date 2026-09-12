@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import type { InventoryItem } from '../types';
 import { CAR_MODELS, CATEGORIES, SIDES, QUALITY_TIERS, POSITIONS } from '../types';
-import { X } from 'lucide-react';
+import { X, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { syncApi } from '../api';
 
 interface ItemFormModalProps {
   open: boolean;
@@ -27,6 +28,29 @@ export function ItemFormModal({ open, item, onClose, onSave }: ItemFormModalProp
     compatible_models: [] as string[],
   });
   const [submitting, setSubmitting] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
+
+  const handleFetchFromMaruti = async () => {
+    if (!formData.oem_number.trim()) {
+      toast.error('Please enter an OEM number first');
+      return;
+    }
+    try {
+      setLookingUp(true);
+      const result = await syncApi.lookupOem(formData.oem_number);
+      setFormData((prev) => ({
+        ...prev,
+        part_name: result.name || prev.part_name,
+        selling_price: result.price ?? prev.selling_price,
+        quality_tier: 'MGP Genuine',
+      }));
+      toast.success(`Found on Maruti: "${result.name}" @ ₹${result.price}`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to fetch details from Maruti website');
+    } finally {
+      setLookingUp(false);
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -120,8 +144,38 @@ export function ItemFormModal({ open, item, onClose, onSave }: ItemFormModalProp
             </div>
 
             <div className="field">
-              <label>OEM Number *</label>
-              <input name="oem_number" required value={formData.oem_number} onChange={handleChange} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <label style={{ margin: 0 }}>OEM Number *</label>
+                <button
+                  type="button"
+                  disabled={lookingUp || !formData.oem_number.trim()}
+                  onClick={handleFetchFromMaruti}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: '#2563eb',
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: 6,
+                    padding: '2px 8px',
+                    cursor: 'pointer',
+                  }}
+                  title="Auto-fill Part Name & Price directly from Maruti Suzuki website"
+                >
+                  <RefreshCw size={12} style={{ animation: lookingUp ? 'spin 1s linear infinite' : 'none' }} />
+                  {lookingUp ? 'Fetching...' : 'Fetch from Maruti'}
+                </button>
+              </div>
+              <input
+                name="oem_number"
+                required
+                placeholder="e.g. 72470 M 55U00"
+                value={formData.oem_number}
+                onChange={handleChange}
+              />
             </div>
             <div className="field">
               <label>Selling Price (₹) *</label>

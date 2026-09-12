@@ -1,5 +1,6 @@
 """main.py — FastAPI application entry point."""
 
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,14 +32,19 @@ app = FastAPI(
 )
 
 # CORS — allow frontend dev servers and any Vercel deployment URL
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "https://ravi-motors-inventory-r3cpbbvj2.vercel.app",
+]
+extra_origins = os.getenv("ALLOWED_ORIGINS", "")
+if extra_origins:
+    origins.extend([o.strip() for o in extra_origins.split(",") if o.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "https://ravi-motors-inventory-r3cpbbvj2.vercel.app",
-    ],
+    allow_origins=origins,
     allow_origin_regex=r"https://.*\.vercel\.app",  # Matches all Vercel deployment preview/production URLs
     allow_credentials=True,
     allow_methods=["*"],

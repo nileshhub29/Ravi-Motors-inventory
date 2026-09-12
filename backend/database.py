@@ -31,11 +31,17 @@ if is_sqlite:
         poolclass=StaticPool,       # single shared connection — safe for SQLite + asyncio
     )
 else:
-    # For PostgreSQL (e.g., Render Postgres, Neon)
+    # For PostgreSQL (e.g., Supabase, Neon)
+    if "sslmode=" in DATABASE_URL:
+        DATABASE_URL = DATABASE_URL.replace("sslmode=require", "ssl=require").replace("sslmode=prefer", "ssl=prefer")
+
     engine = create_async_engine(
         DATABASE_URL,
         echo=False,
         pool_pre_ping=True,
+        pool_size=10,
+        max_overflow=20,
+        connect_args={"statement_cache_size": 0},
     )
 
 

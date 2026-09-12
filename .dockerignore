@@ -1,0 +1,16 @@
+.git
+.github
+.agents
+frontend/
+venv/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.db
+*.db-shm
+*.db-wal
+backups/
+.env*
+.DS_Store

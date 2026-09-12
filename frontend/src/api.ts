@@ -85,6 +85,16 @@ export const inventoryApi = {
     }),
 };
 
+// --- Sync ---
+export const syncApi = {
+  check: (itemId: number) => request<any>(`/api/sync/check/${itemId}`),
+  apply: (itemId: number) => request<any>(`/api/sync/apply/${itemId}`, { method: 'POST' }),
+  lookupOem: (oemNumber: string) =>
+    request<{ sku: string; name: string; price: number; in_stock: boolean }>(
+      `/api/sync/lookup?oem_number=${encodeURIComponent(oemNumber)}`
+    ),
+};
+
 // --- Audit Logs ---
 export const auditApi = {
   list: () => request<any[]>('/api/audit-logs'),

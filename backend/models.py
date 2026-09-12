@@ -36,7 +36,7 @@ class UserRole(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
-    role: Mapped[AppRole] = mapped_column(Enum(AppRole), nullable=False, default=AppRole.staff)
+    role: Mapped[AppRole] = mapped_column(Enum(AppRole, native_enum=False), nullable=False, default=AppRole.staff)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -50,7 +50,7 @@ class Worker(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
-    role: Mapped[AppRole] = mapped_column(Enum(AppRole), nullable=False, default=AppRole.staff)
+    role: Mapped[AppRole] = mapped_column(Enum(AppRole, native_enum=False), nullable=False, default=AppRole.staff)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
